@@ -86,37 +86,61 @@ const VisitFormPage = () => {
     const mes = dateObj.toLocaleString("pt-BR", { month: "long" });
     const ano = dateObj.getFullYear();
 
-    const visitData = {
-      corretor: user?.name,
-      equipe: team,
-      cliente: clientName,
-      data: visitDate,
-      mes: mes.charAt(0).toUpperCase() + mes.slice(1),
-      ano,
-      valorMedio: mediaValor,
-      setores: setoresUnique,
-      cidades: cidadesUnique,
-      feedback,
-      photo,
-    };
+    const mesCapitalized = mes.charAt(0).toUpperCase() + mes.slice(1);
 
-    console.log("Visit data to submit:", visitData);
+    // Build FormData to support file upload
+    const formData = new FormData();
+    formData.append("corretor", user?.name || "");
+    formData.append("equipe", team);
+    formData.append("cliente", clientName);
+    formData.append("data", visitDate);
+    formData.append("mes", mesCapitalized);
+    formData.append("ano", String(ano));
+    formData.append("valorMedio", String(mediaValor));
+    formData.append("setores", setoresUnique);
+    formData.append("cidades", cidadesUnique);
+    formData.append("feedback", feedback);
+    if (photo) {
+      formData.append("photo", photo);
+    }
 
-    // TODO: Send to backend (edge function → Google Sheets + Drive)
-    await new Promise((r) => setTimeout(r, 1500));
+    try {
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-    toast.success("Visita registrada com sucesso!");
+      const response = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/submit-visit`,
+        {
+          method: "POST",
+          headers: {
+            apikey: anonKey,
+          },
+          body: formData,
+        }
+      );
 
-    // Reset form
-    setClientName("");
-    setVisitDate("");
-    setTeam("");
-    setPropertyCount(1);
-    setProperties([{ cidade: "", setor: "", valor: "" }]);
-    setFeedback("");
-    setPhoto(null);
-    setSubmitting(false);
-  };
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Erro ao registrar visita");
+      }
+
+      toast.success("Visita registrada com sucesso!");
+
+      // Reset form
+      setClientName("");
+      setVisitDate("");
+      setTeam("");
+      setPropertyCount(1);
+      setProperties([{ cidade: "", setor: "", valor: "" }]);
+      setFeedback("");
+      setPhoto(null);
+    } catch (err: any) {
+      console.error("Submit error:", err);
+      toast.error(err.message || "Erro ao registrar visita");
+    } finally {
+      setSubmitting(false);
+    }
 
   return (
     <div className="min-h-screen bg-background">
