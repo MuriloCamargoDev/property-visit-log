@@ -1,13 +1,17 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Building2, Lock, User, Eye, EyeOff } from "lucide-react";
+import { Building2, Lock, Mail, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
-const LoginPage = () => {
-  const { login } = useAuth();
-  const [username, setUsername] = useState("");
+interface LoginPageProps {
+  onGoToSignup: () => void;
+}
+
+const LoginPage = ({ onGoToSignup }: LoginPageProps) => {
+  const { signIn } = useAuth();
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -18,11 +22,9 @@ const LoginPage = () => {
     setError("");
     setLoading(true);
 
-    await new Promise((r) => setTimeout(r, 600));
-
-    const success = login(username, password);
-    if (!success) {
-      setError("Usuário ou senha incorretos");
+    const { error: signInError } = await signIn(email, password);
+    if (signInError) {
+      setError("E-mail ou senha incorretos");
     }
     setLoading(false);
   };
@@ -30,7 +32,6 @@ const LoginPage = () => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gradient-hero px-4">
       <div className="w-full max-w-sm animate-fade-in">
-        {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl gradient-accent mb-4">
             <Building2 className="w-8 h-8 text-accent-foreground" />
@@ -43,7 +44,6 @@ const LoginPage = () => {
           </p>
         </div>
 
-        {/* Card */}
         <div className="bg-card rounded-xl shadow-elevated p-6 space-y-5">
           <div className="text-center">
             <h2 className="text-lg font-heading font-semibold text-card-foreground">
@@ -56,16 +56,17 @@ const LoginPage = () => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username" className="text-card-foreground">
-                Corretor
+              <Label htmlFor="email" className="text-card-foreground">
+                E-mail
               </Label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  id="username"
-                  placeholder="Nome do corretor"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  id="email"
+                  type="email"
+                  placeholder="seu@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
                   required
                 />
@@ -112,8 +113,11 @@ const LoginPage = () => {
             </Button>
           </form>
 
-          <p className="text-xs text-center text-muted-foreground">
-            Credenciais de teste: qualquer nome acima / class123
+          <p className="text-sm text-center text-muted-foreground">
+            Primeiro acesso?{" "}
+            <button onClick={onGoToSignup} className="text-accent font-semibold hover:underline">
+              Crie sua conta
+            </button>
           </p>
         </div>
       </div>
