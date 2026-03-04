@@ -1,45 +1,96 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
 
-interface User {
-  name: string;
+interface Profile {
+  full_name: string;
   team: string;
 }
 
 interface AuthContextType {
-  user: User | null;
-  login: (username: string, password: string) => boolean;
-  logout: () => void;
+  user: SupabaseUser | null;
+  profile: Profile | null;
+  loading: boolean;
+  signUp: (email: string, password: string, fullName: string, team: string) => Promise<{ error: string | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Temporary mock users - will be replaced with Cloud auth
-const MOCK_USERS = [
-  { username: "João Silva", password: "class123", team: "Aventador" },
-  { username: "Maria Santos", password: "class123", team: "Red Eagles" },
-  { username: "Carlos Souza", password: "class123", team: "Fênix" },
-  { username: "Ana Oliveira", password: "class123", team: "Rota" },
-  { username: "Pedro Lima", password: "class123", team: "Sharks" },
-];
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const login = (username: string, password: string): boolean => {
-    const found = MOCK_USERS.find(
-      (u) => u.username.toLowerCase() === username.toLowerCase() && u.password === password
-    );
-    if (found) {
-      setUser({ name: found.username, team: found.team });
-      return true;
-    }
-    return false;
+  const fetchProfile = async (userId: string) => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("full_name, team")
+      .eq("user_id", userId)
+      .single();
+    if (data) setProfile(data);
+    else setProfile(null);
   };
 
-  const logout = () => setUser(null);
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        if (currentUser) {
+          await fetchProfile(currentUser.id);
+        } else {
+          setProfile(null);
+        }
+        setLoading(false);
+      }
+    );
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
+        fetchProfile(currentUser.id);
+      }
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const signUp = async (email: string, password: string, fullName: string, team: string) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: window.location.origin },
+    });
+    if (error) return { error: error.message };
+
+    if (data.user) {
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .insert({ user_id: data.user.id, full_name: fullName, team });
+      if (profileError) return { error: profileError.message };
+    }
+
+    return { error: null };
+  };
+
+  const signIn = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return { error: error.message };
+    return { error: null };
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setProfile(null);
+  };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, profile, loading, signUp, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );
