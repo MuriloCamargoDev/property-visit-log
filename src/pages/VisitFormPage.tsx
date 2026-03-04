@@ -105,11 +105,11 @@ const VisitFormPage = () => {
     }
 
     try {
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
       const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/submit-visit`,
+        `${supabaseUrl}/functions/v1/submit-visit`,
         {
           method: "POST",
           headers: {
