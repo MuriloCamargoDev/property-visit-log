@@ -3,18 +3,18 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import VisitFormPage from "./pages/VisitFormPage";
-import NotFound from "./pages/NotFound";
+import ProfilePage from "./pages/ProfilePage";
 
 const queryClient = new QueryClient();
 
 const AppRoutes = () => {
   const { user, profile, loading } = useAuth();
   const [authView, setAuthView] = useState<"login" | "signup">("login");
+  const [appView, setAppView] = useState<"form" | "profile">("form");
 
   if (loading) {
     return (
@@ -33,12 +33,11 @@ const AppRoutes = () => {
     return <LoginPage onGoToSignup={() => setAuthView("signup")} />;
   }
 
-  return (
-    <Routes>
-      <Route path="/" element={<VisitFormPage />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-  );
+  if (appView === "profile") {
+    return <ProfilePage onBack={() => setAppView("form")} />;
+  }
+
+  return <VisitFormPage onGoToProfile={() => setAppView("profile")} />;
 };
 
 const App = () => (
@@ -47,9 +46,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <AuthProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
+        <AppRoutes />
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>

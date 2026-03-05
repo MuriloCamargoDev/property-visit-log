@@ -46,36 +46,11 @@ const SignupPage = ({ onGoToLogin }: SignupPageProps) => {
     const { error: signUpError } = await signUp(email, password, fullName, team);
     if (signUpError) {
       setError(signUpError);
-    } else {
-      setSuccess(true);
     }
     setLoading(false);
   };
 
-  if (success) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center gradient-hero px-4">
-        <div className="w-full max-w-sm animate-fade-in">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl gradient-accent mb-4">
-              <Building2 className="w-8 h-8 text-accent-foreground" />
-            </div>
-          </div>
-          <div className="bg-card rounded-xl shadow-elevated p-6 space-y-4 text-center">
-            <h2 className="text-lg font-heading font-semibold text-card-foreground">
-              Cadastro Realizado!
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Verifique seu e-mail para confirmar a conta. Após a confirmação, faça login.
-            </p>
-            <Button onClick={onGoToLogin} className="w-full gradient-accent text-accent-foreground font-semibold">
-              Ir para Login
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Auto-login after signup - no success screen needed
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gradient-hero px-4">

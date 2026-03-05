@@ -26,7 +26,11 @@ interface PropertyData {
   valor: string;
 }
 
-const VisitFormPage = () => {
+interface VisitFormPageProps {
+  onGoToProfile: () => void;
+}
+
+const VisitFormPage = ({ onGoToProfile }: VisitFormPageProps) => {
   const { profile, signOut } = useAuth();
   const [clientName, setClientName] = useState("");
   const [visitDate, setVisitDate] = useState("");
@@ -141,6 +145,13 @@ const VisitFormPage = () => {
               <Users className="w-3 h-3" />
               {profile?.team}
             </span>
+            <button
+              onClick={onGoToProfile}
+              className="text-primary-foreground/60 hover:text-primary-foreground transition-colors"
+              title="Meu Perfil"
+            >
+              <User className="w-4 h-4" />
+            </button>
             <button
               onClick={signOut}
               className="text-primary-foreground/60 hover:text-primary-foreground transition-colors"
