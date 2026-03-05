@@ -46,8 +46,6 @@ const SignupPage = ({ onGoToLogin }: SignupPageProps) => {
     const { error: signUpError } = await signUp(email, password, fullName, team);
     if (signUpError) {
       setError(signUpError);
-    } else {
-      setSuccess(true);
     }
     setLoading(false);
   };
