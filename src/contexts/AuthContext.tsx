@@ -23,14 +23,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string, userMeta?: Record<string, any>) => {
     const { data } = await supabase
       .from("profiles")
       .select("full_name, team")
       .eq("user_id", userId)
       .single();
-    if (data) setProfile(data);
-    else setProfile(null);
+    if (data) {
+      setProfile(data);
+    } else if (userMeta?.full_name && userMeta?.team) {
+      // Fallback to user metadata while trigger creates the profile
+      setProfile({ full_name: userMeta.full_name, team: userMeta.team });
+    } else {
+      setProfile(null);
+    }
   };
 
   useEffect(() => {
