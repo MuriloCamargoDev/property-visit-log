@@ -14,6 +14,7 @@ const queryClient = new QueryClient();
 const AppRoutes = () => {
   const { user, profile, loading } = useAuth();
   const [authView, setAuthView] = useState<"login" | "signup">("login");
+  const [appView, setAppView] = useState<"form" | "profile">("form");
 
   if (loading) {
     return (
@@ -32,12 +33,11 @@ const AppRoutes = () => {
     return <LoginPage onGoToSignup={() => setAuthView("signup")} />;
   }
 
-  return (
-    <Routes>
-      <Route path="/" element={<VisitFormPage />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-  );
+  if (appView === "profile") {
+    return <ProfilePage onBack={() => setAppView("form")} />;
+  }
+
+  return <VisitFormPage onGoToProfile={() => setAppView("profile")} />;
 };
 
 const App = () => (
