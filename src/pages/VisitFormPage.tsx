@@ -26,7 +26,11 @@ interface PropertyData {
   valor: string;
 }
 
-const VisitFormPage = () => {
+interface VisitFormPageProps {
+  onGoToProfile: () => void;
+}
+
+const VisitFormPage = ({ onGoToProfile }: VisitFormPageProps) => {
   const { profile, signOut } = useAuth();
   const [clientName, setClientName] = useState("");
   const [visitDate, setVisitDate] = useState("");
