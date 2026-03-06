@@ -1,7 +1,8 @@
-import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2, MapPin, DollarSign, Building } from "lucide-react";
+import { PRIORITY_CITIES, OTHER_CITIES } from "@/data/goias-cities";
 
 interface PropertyData {
   cidade: string;
@@ -48,12 +49,27 @@ const PropertyFields = ({ properties, onChange }: PropertyFieldsProps) => {
               <Label className="text-xs text-muted-foreground flex items-center gap-1">
                 <MapPin className="w-3 h-3" /> Cidade
               </Label>
-              <Input
-                placeholder="Ex: Goiânia"
+              <Select
                 value={prop.cidade}
-                onChange={(e) => updateProperty(index, "cidade", e.target.value)}
-                required
-              />
+                onValueChange={(value) => updateProperty(index, "cidade", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a cidade" />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  {PRIORITY_CITIES.map((city) => (
+                    <SelectItem key={city} value={city} className="font-medium">
+                      {city}
+                    </SelectItem>
+                  ))}
+                  <div className="border-t border-border my-1" />
+                  {OTHER_CITIES.map((city) => (
+                    <SelectItem key={city} value={city}>
+                      {city}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-1.5">
