@@ -3,227 +3,19 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Team → Spreadsheet ID mapping
+const APPS_SCRIPT_URL =
+  "https://script.google.com/macros/s/AKfycbxS3h9scxcpmMp1MUgGnCdc9BlBmXo5m0_zJ94Lzd6OiAXAamuk4XaL1Oj49wJvAOpe/exec";
+
 const TEAM_SPREADSHEET_IDS: Record<string, string> = {
-  Aventador: Deno.env.get("SPREADSHEET_AVENTADOR") || "",
-  "Red Eagles": Deno.env.get("SPREADSHEET_RED_EAGLES") || "",
-  Fênix: Deno.env.get("SPREADSHEET_FENIX") || "",
-  Rota: Deno.env.get("SPREADSHEET_ROTA") || "",
-  Sharks: Deno.env.get("SPREADSHEET_SHARKS") || "",
+  Aventador: "1JwVmSefjfEPCba9UmMf1HYxh44WoF1yl_1DSnAm4TL8",
+  "Red Eagles": "1P1MtSUy9qTUrAyiwNoiEBWKpyt01TqUF9JaM0uI-vvw",
+  "Fênix": "1_470SJy1LVsm1JNnpKS4AlHi3trBhS9_PvLLWZVzDqs",
+  Rota: "1rBqiEnuzifdYH-4yOpbyJvlHGzjPmiqgSgJuR1KzO-o",
+  Sharks: "142nnhG4zDX0pBarrbvFqQcHZxPqr8DmcSM5HCZSx5OI",
 };
-
-const DRIVE_FOLDER_ID = Deno.env.get("GOOGLE_DRIVE_FOLDER_ID") || "";
-
-// --- Google Auth via Service Account ---
-
-async function getAccessToken(): Promise<string> {
-  const email = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_EMAIL");
-  const privateKeyRaw = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY");
-
-  if (!email || !privateKeyRaw) {
-    throw new Error("Google Service Account credentials not configured");
-  }
-
-  const privateKeyPem = privateKeyRaw.replace(/\\n/g, "\n");
-
-  const now = Math.floor(Date.now() / 1000);
-  const header = { alg: "RS256", typ: "JWT" };
-  const payload = {
-    iss: email,
-    scope:
-      "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive",
-    aud: "https://oauth2.googleapis.com/token",
-    exp: now + 3600,
-    iat: now,
-  };
-
-  const encode = (obj: unknown) =>
-    btoa(JSON.stringify(obj))
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_")
-      .replace(/=+$/, "");
-
-  const unsignedToken = `${encode(header)}.${encode(payload)}`;
-
-  // Import private key
-  const pemBody = privateKeyPem
-    .replace(/-----BEGIN PRIVATE KEY-----/, "")
-    .replace(/-----END PRIVATE KEY-----/, "")
-    .replace(/\s/g, "");
-
-  const binaryKey = Uint8Array.from(atob(pemBody), (c) => c.charCodeAt(0));
-
-  const cryptoKey = await crypto.subtle.importKey(
-    "pkcs8",
-    binaryKey,
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-
-  const signature = await crypto.subtle.sign(
-    "RSASSA-PKCS1-v1_5",
-    cryptoKey,
-    new TextEncoder().encode(unsignedToken)
-  );
-
-  const sig = btoa(String.fromCharCode(...new Uint8Array(signature)))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-
-  const jwt = `${unsignedToken}.${sig}`;
-
-  // Exchange JWT for access token
-  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`,
-  });
-
-  const tokenData = await tokenRes.json();
-  if (!tokenRes.ok) {
-    throw new Error(
-      `Failed to get access token: ${JSON.stringify(tokenData)}`
-    );
-  }
-
-  return tokenData.access_token;
-}
-
-// --- Google Drive helpers ---
-
-async function findOrCreateFolder(
-  accessToken: string,
-  name: string,
-  parentId: string
-): Promise<string> {
-  // Search for existing folder
-  const query = `name='${name}' and '${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
-  const searchRes = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name)`,
-    { headers: { Authorization: `Bearer ${accessToken}` } }
-  );
-  const searchData = await searchRes.json();
-
-  if (searchData.files && searchData.files.length > 0) {
-    return searchData.files[0].id;
-  }
-
-  // Create folder
-  const createRes = await fetch("https://www.googleapis.com/drive/v3/files", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      name,
-      mimeType: "application/vnd.google-apps.folder",
-      parents: [parentId],
-    }),
-  });
-  const createData = await createRes.json();
-  if (!createRes.ok) {
-    throw new Error(`Failed to create folder '${name}': ${JSON.stringify(createData)}`);
-  }
-  return createData.id;
-}
-
-async function uploadFileToDrive(
-  accessToken: string,
-  fileName: string,
-  folderId: string,
-  fileData: Uint8Array,
-  mimeType: string
-): Promise<string> {
-  const metadata = {
-    name: fileName,
-    parents: [folderId],
-  };
-
-  const boundary = "----boundary" + Date.now();
-  const metadataStr = JSON.stringify(metadata);
-
-  const body = new Uint8Array(
-    await new Blob([
-      `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadataStr}\r\n--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`,
-      fileData,
-      `\r\n--${boundary}--`,
-    ]).arrayBuffer()
-  );
-
-  const uploadRes = await fetch(
-    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": `multipart/related; boundary=${boundary}`,
-      },
-      body,
-    }
-  );
-
-  const uploadData = await uploadRes.json();
-  if (!uploadRes.ok) {
-    throw new Error(`Failed to upload file: ${JSON.stringify(uploadData)}`);
-  }
-
-  // Make file publicly readable
-  await fetch(
-    `https://www.googleapis.com/drive/v3/files/${uploadData.id}/permissions`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ role: "reader", type: "anyone" }),
-    }
-  );
-
-  return uploadData.webViewLink || `https://drive.google.com/file/d/${uploadData.id}/view`;
-}
-
-// --- Google Sheets helper ---
-
-async function appendToSheet(
-  accessToken: string,
-  spreadsheetId: string,
-  values: string[]
-): Promise<void> {
-  const range = "Visitas!A:K";
-  const res = await fetch(
-    `https://www.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        values: [values],
-      }),
-    }
-  );
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(`Failed to append to sheet: ${JSON.stringify(data)}`);
-  }
-}
-
-// --- Month names in Portuguese ---
-const MONTH_NAMES: Record<number, string> = {
-  1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril",
-  5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto",
-  9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro",
-};
-
-// --- Main handler ---
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -232,33 +24,49 @@ Deno.serve(async (req) => {
 
   try {
     const contentType = req.headers.get("content-type") || "";
-    let body: any;
+    let corretor = "", equipe = "", cliente = "", data = "", mes = "", ano = "";
+    let valorMedio = "", setores = "", cidades = "", feedback = "";
+    let photoBase64 = "";
+    let photoName = "";
+    let photoMimeType = "";
 
     if (contentType.includes("multipart/form-data")) {
       const formData = await req.formData();
-      body = {
-        corretor: formData.get("corretor") as string,
-        equipe: formData.get("equipe") as string,
-        cliente: formData.get("cliente") as string,
-        data: formData.get("data") as string,
-        mes: formData.get("mes") as string,
-        ano: formData.get("ano") as string,
-        valorMedio: formData.get("valorMedio") as string,
-        setores: formData.get("setores") as string,
-        cidades: formData.get("cidades") as string,
-        feedback: formData.get("feedback") as string,
-        photo: formData.get("photo") as File | null,
-      };
+      corretor = formData.get("corretor") as string || "";
+      equipe = formData.get("equipe") as string || "";
+      cliente = formData.get("cliente") as string || "";
+      data = formData.get("data") as string || "";
+      mes = formData.get("mes") as string || "";
+      ano = formData.get("ano") as string || "";
+      valorMedio = formData.get("valorMedio") as string || "";
+      setores = formData.get("setores") as string || "";
+      cidades = formData.get("cidades") as string || "";
+      feedback = formData.get("feedback") as string || "";
+
+      const photo = formData.get("photo") as File | null;
+      if (photo && photo.size > 0) {
+        const bytes = new Uint8Array(await photo.arrayBuffer());
+        photoBase64 = btoa(String.fromCharCode(...bytes));
+        photoName = photo.name || "foto.jpg";
+        photoMimeType = photo.type || "image/jpeg";
+      }
     } else {
-      body = await req.json();
+      const body = await req.json();
+      corretor = body.corretor || "";
+      equipe = body.equipe || "";
+      cliente = body.cliente || "";
+      data = body.data || "";
+      mes = body.mes || "";
+      ano = body.ano || "";
+      valorMedio = body.valorMedio || "";
+      setores = body.setores || "";
+      cidades = body.cidades || "";
+      feedback = body.feedback || "";
+      photoBase64 = body.photoBase64 || "";
+      photoName = body.photoName || "";
+      photoMimeType = body.photoMimeType || "";
     }
 
-    const {
-      corretor, equipe, cliente, data, mes, ano,
-      valorMedio, setores, cidades, feedback,
-    } = body;
-
-    // Validate required fields
     if (!corretor || !equipe || !cliente || !data || !feedback) {
       return new Response(
         JSON.stringify({ error: "Campos obrigatórios não preenchidos" }),
@@ -274,65 +82,55 @@ Deno.serve(async (req) => {
       );
     }
 
-    const accessToken = await getAccessToken();
-
-    // Handle photo upload
-    let photoLink = "";
-    const photo = body.photo;
-
-    if (photo && photo instanceof File && photo.size > 0) {
-      // Parse date for folder structure
-      const [year, month, day] = data.split("-");
-      const monthNum = parseInt(month);
-      const monthName = MONTH_NAMES[monthNum] || mes;
-      const dayStr = day; // e.g. "03"
-
-      // Create folder structure: Visitas Class → Mês → Dia → Equipe
-      const monthFolderId = await findOrCreateFolder(accessToken, monthName, DRIVE_FOLDER_ID);
-      const dayFolderId = await findOrCreateFolder(accessToken, dayStr, monthFolderId);
-      const teamFolderId = await findOrCreateFolder(accessToken, equipe, dayFolderId);
-
-      // Rename file
-      const dateFormatted = `${day}-${month}-${year}`;
-      const ext = photo.name?.split(".").pop() || "jpg";
-      const fileName = `Visita - ${corretor} - ${cliente} - ${dateFormatted}.${ext}`;
-
-      const fileBytes = new Uint8Array(await photo.arrayBuffer());
-      photoLink = await uploadFileToDrive(
-        accessToken,
-        fileName,
-        teamFolderId,
-        fileBytes,
-        photo.type || "image/jpeg"
-      );
-    }
-
     // Format value as currency
     const valorFormatted = parseFloat(valorMedio).toLocaleString("pt-BR", {
       style: "currency",
       currency: "BRL",
     });
 
-    // Append to Google Sheet
-    // Columns: Corretor | Equipe | Nome do Cliente | Data | Mês | Ano | Valor do Imóvel | Setor | Cidade | Feedback | Foto
-    const row = [
+    // Build payload for Apps Script
+    const payload: Record<string, string> = {
+      spreadsheetId,
       corretor,
       equipe,
       cliente,
       data,
       mes,
       ano,
-      valorFormatted,
-      setores,
-      cidades,
+      valor: valorFormatted,
+      setor: setores,
+      cidade: cidades,
       feedback,
-      photoLink || "",
-    ];
+    };
 
-    await appendToSheet(accessToken, spreadsheetId, row);
+    if (photoBase64) {
+      payload.photoBase64 = photoBase64;
+      payload.photoName = `Visita - ${corretor} - ${cliente} - ${data.split("-").reverse().join("-")}.${photoName.split(".").pop() || "jpg"}`;
+      payload.photoMimeType = photoMimeType;
+    }
+
+    // Send to Google Apps Script webhook
+    const response = await fetch(APPS_SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      redirect: "follow",
+    });
+
+    const resultText = await response.text();
+    let result: any;
+    try {
+      result = JSON.parse(resultText);
+    } catch {
+      result = { raw: resultText };
+    }
+
+    if (!response.ok && response.status !== 302 && response.status !== 200) {
+      throw new Error(result.error || `Apps Script returned status ${response.status}`);
+    }
 
     return new Response(
-      JSON.stringify({ success: true, message: "Visita registrada com sucesso!" }),
+      JSON.stringify({ success: true, message: "Visita registrada com sucesso!", result }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: unknown) {

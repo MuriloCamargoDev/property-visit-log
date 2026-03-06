@@ -1,0 +1,2 @@
+DELETE FROM public.profiles WHERE user_id = '0727cb1d-cd24-42e1-a991-1027ddcc7d17';
+INSERT INTO public.profiles (user_id, full_name, team) VALUES ('0727cb1d-cd24-42e1-a991-1027ddcc7d17', 'Murilo', 'Red Eagles');
