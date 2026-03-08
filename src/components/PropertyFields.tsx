@@ -17,7 +17,7 @@ interface PropertyFieldsProps {
 }
 
 const PropertyFields = ({ properties, onChange }: PropertyFieldsProps) => {
-  const updateProperty = (index: number, field: keyof PropertyData, value: string) => {
+  const updateProperty = (index: number, field: keyof PropertyData, value: string | number) => {
     const updated = [...properties];
     updated[index] = { ...updated[index], [field]: value };
     onChange(updated);
