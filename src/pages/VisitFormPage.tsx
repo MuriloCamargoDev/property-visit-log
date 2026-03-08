@@ -115,7 +115,7 @@ const VisitFormPage = ({ onGoToProfile }: VisitFormPageProps) => {
       setClientName("");
       setVisitDate("");
       setPropertyCount(1);
-      setProperties([{ cidade: "", setor: "", valor: "" }]);
+      setProperties([{ cidade: "", setor: "", valorCents: 0 }]);
       setFeedback("");
       setPhoto(null);
     } catch (err: any) {
