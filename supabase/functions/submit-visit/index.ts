@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const APPS_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbxPIZGSIRSuP5DmZviUIT__vTbAl7pLb7ZPt6ysYjF21FmyF30xMaxMSWAeTVc1Nn9U/exec";
+  "https://script.google.com/macros/s/AKfycbwwE3fw-hv1lzFyea_uE1giP95qa4moGoSSUOwRQ4j9qgSu6V-8MWEOi-hBKacRdRhp/exec";
 
 const DRIVE_ROOT_FOLDER_ID = "1iImsnrUnvwHCjnR_7-HlCOhMhYiNTcJV";
 
@@ -25,49 +25,21 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const contentType = req.headers.get("content-type") || "";
-    let corretor = "", equipe = "", cliente = "", data = "", mes = "", ano = "";
-    let valorMedio = "", setores = "", cidades = "", feedback = "";
-    let photoBase64 = "";
-    let photoName = "";
-    let photoMimeType = "";
-
-    if (contentType.includes("multipart/form-data")) {
-      const formData = await req.formData();
-      corretor = formData.get("corretor") as string || "";
-      equipe = formData.get("equipe") as string || "";
-      cliente = formData.get("cliente") as string || "";
-      data = formData.get("data") as string || "";
-      mes = formData.get("mes") as string || "";
-      ano = formData.get("ano") as string || "";
-      valorMedio = formData.get("valorMedio") as string || "";
-      setores = formData.get("setores") as string || "";
-      cidades = formData.get("cidades") as string || "";
-      feedback = formData.get("feedback") as string || "";
-
-      const photo = formData.get("photo") as File | null;
-      if (photo && photo.size > 0) {
-        const bytes = new Uint8Array(await photo.arrayBuffer());
-        photoBase64 = btoa(String.fromCharCode(...bytes));
-        photoName = photo.name || "foto.jpg";
-        photoMimeType = photo.type || "image/jpeg";
-      }
-    } else {
-      const body = await req.json();
-      corretor = body.corretor || "";
-      equipe = body.equipe || "";
-      cliente = body.cliente || "";
-      data = body.data || "";
-      mes = body.mes || "";
-      ano = body.ano || "";
-      valorMedio = body.valorMedio || "";
-      setores = body.setores || "";
-      cidades = body.cidades || "";
-      feedback = body.feedback || "";
-      photoBase64 = body.photoBase64 || "";
-      photoName = body.photoName || "";
-      photoMimeType = body.photoMimeType || "";
-    }
+    const body = await req.json();
+    const {
+      corretor = "",
+      equipe = "",
+      cliente = "",
+      data = "",
+      mes = "",
+      ano = "",
+      valorMedio = "",
+      setores = "",
+      cidades = "",
+      feedback = "",
+      foto = "",
+      nomeArquivo = "",
+    } = body;
 
     if (!corretor || !equipe || !cliente || !data || !feedback) {
       return new Response(
@@ -90,30 +62,35 @@ Deno.serve(async (req) => {
       currency: "BRL",
     });
 
+    // Format date as dd/mm/aaaa
+    const [yyyy, mm, dd] = data.split("-");
+    const dataFormatted = `${dd}/${mm}/${yyyy}`;
+
+    // Build folder path: Visitas Class/Equipe/Ano/Mês/Dia
+    const diaNum = String(parseInt(dd, 10)).padStart(2, "0");
+    const folderPath = `Visitas Class/${equipe}/${ano}/${mes}/${diaNum}`;
+
     // Build payload for Apps Script
     const payload: Record<string, string> = {
       spreadsheetId,
       corretor,
       equipe,
       cliente,
-      data,
+      data: dataFormatted,
       mes,
       ano,
       valor: valorFormatted,
       setor: setores,
       cidade: cidades,
       feedback,
+      driveFolderId: DRIVE_ROOT_FOLDER_ID,
+      folderPath,
     };
 
-    if (photoBase64) {
-      payload.photoBase64 = photoBase64;
-      payload.photoName = `Visita - ${corretor} - ${equipe} - ${cliente} - ${data.split("-").reverse().join("-")}.${photoName.split(".").pop() || "jpg"}`;
-      payload.photoMimeType = photoMimeType;
-      payload.driveFolderId = DRIVE_ROOT_FOLDER_ID;
-      // Folder hierarchy: Visitas Class > Equipe > Ano > Mês > Dia
-      const dateObj = new Date(data + "T00:00:00");
-      const dia = String(dateObj.getDate()).padStart(2, "0");
-      payload.folderPath = `Visitas Class/${equipe}/${ano}/${mes}/${dia}`;
+    // Add photo fields if present
+    if (foto) {
+      payload.foto = foto;
+      payload.nomeArquivo = nomeArquivo;
     }
 
     // Send to Google Apps Script webhook

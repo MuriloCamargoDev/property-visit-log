@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 import { Input } from "@/components/ui/input";
@@ -80,20 +81,45 @@ const VisitFormPage = ({ onGoToProfile }: VisitFormPageProps) => {
     const ano = dateObj.getFullYear();
     const mesCapitalized = mes.charAt(0).toUpperCase() + mes.slice(1);
 
-    const formData = new FormData();
-    formData.append("corretor", profile?.full_name || "");
-    formData.append("equipe", profile?.team || "");
-    formData.append("cliente", clientName);
-    formData.append("data", visitDate);
-    formData.append("mes", mesCapitalized);
-    formData.append("ano", String(ano));
-    formData.append("valorMedio", String(mediaValor));
-    formData.append("setores", setoresUnique);
-    formData.append("cidades", cidadesUnique);
-    formData.append("feedback", feedback);
+    // Format date parts
+    const [yyyy, mm, dd] = visitDate.split("-");
+    const dataFormatada = `${dd}-${mm}-${yyyy}`;
+
+    // Upload photo to storage if present
+    let fotoUrl = "";
+    let nomeArquivo = "";
     if (photo) {
-      formData.append("photo", photo);
+      const ext = photo.name.split(".").pop() || "jpg";
+      nomeArquivo = `Visita - ${profile?.full_name} - ${profile?.team} - ${clientName} - ${dataFormatada}.${ext}`;
+      const storagePath = `${crypto.randomUUID()}.${ext}`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("visit-photos")
+        .upload(storagePath, photo, { contentType: photo.type });
+
+      if (uploadError) throw new Error("Erro ao enviar foto: " + uploadError.message);
+
+      const { data: urlData } = supabase.storage
+        .from("visit-photos")
+        .getPublicUrl(uploadData.path);
+
+      fotoUrl = urlData.publicUrl;
     }
+
+    const payload = {
+      corretor: profile?.full_name || "",
+      equipe: profile?.team || "",
+      cliente: clientName,
+      data: visitDate,
+      mes: mesCapitalized,
+      ano: String(ano),
+      valorMedio: String(mediaValor),
+      setores: setoresUnique,
+      cidades: cidadesUnique,
+      feedback,
+      foto: fotoUrl,
+      nomeArquivo,
+    };
 
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -103,8 +129,11 @@ const VisitFormPage = ({ onGoToProfile }: VisitFormPageProps) => {
         `${supabaseUrl}/functions/v1/submit-visit`,
         {
           method: "POST",
-          headers: { apikey: anonKey },
-          body: formData,
+          headers: {
+            apikey: anonKey,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
         }
       );
 
