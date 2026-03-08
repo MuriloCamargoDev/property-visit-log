@@ -91,7 +91,7 @@ const PropertyFields = ({ properties, onChange }: PropertyFieldsProps) => {
               </Label>
               <CurrencyInput
                 cents={prop.valorCents}
-                onChange={(cents) => updateProperty(index, "valorCents", String(cents))}
+                onChange={(cents) => updateProperty(index, "valorCents", cents)}
               />
             </div>
           </div>
