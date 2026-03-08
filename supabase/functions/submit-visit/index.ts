@@ -90,6 +90,8 @@ Deno.serve(async (req) => {
       payload.foto = foto;
     }
 
+    console.log("Payload to Apps Script:", JSON.stringify(payload));
+
     // Send to Google Apps Script webhook
     const response = await fetch(APPS_SCRIPT_URL, {
       method: "POST",
