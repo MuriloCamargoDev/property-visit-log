@@ -56,11 +56,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Format value as currency
-    const valorFormatted = parseFloat(valorMedio).toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    });
+    // Send valor as raw number (no currency formatting)
+    const valorNumerico = parseFloat(valorMedio) || 0;
 
     // Format date as dd/mm/aaaa
     const [yyyy, mm, dd] = data.split("-");
@@ -71,7 +68,7 @@ Deno.serve(async (req) => {
     const folderPath = `Visitas Class/${equipe}/${ano}/${mes}/${diaNum}`;
 
     // Build payload for Apps Script
-    const payload: Record<string, string> = {
+    const payload: Record<string, string | number> = {
       spreadsheetId,
       corretor,
       equipe,
@@ -79,19 +76,21 @@ Deno.serve(async (req) => {
       data: dataFormatted,
       mes,
       ano,
-      valor: valorFormatted,
+      valor: valorNumerico,
       setor: setores,
       cidade: cidades,
       feedback,
       driveFolderId: DRIVE_ROOT_FOLDER_ID,
       folderPath,
+      nomeArquivo,
     };
 
-    // Add photo fields if present
+    // Add photo URL if present
     if (foto) {
       payload.foto = foto;
-      payload.nomeArquivo = nomeArquivo;
     }
+
+    console.log("Payload to Apps Script:", JSON.stringify(payload));
 
     // Send to Google Apps Script webhook
     const response = await fetch(APPS_SCRIPT_URL, {
