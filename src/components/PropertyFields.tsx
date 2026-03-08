@@ -89,14 +89,9 @@ const PropertyFields = ({ properties, onChange }: PropertyFieldsProps) => {
               <Label className="text-xs text-muted-foreground flex items-center gap-1">
                 <DollarSign className="w-3 h-3" /> Valor (R$)
               </Label>
-              <Input
-                type="number"
-                placeholder="Ex: 350000"
-                value={prop.valor}
-                onChange={(e) => updateProperty(index, "valor", e.target.value)}
-                required
-                min="0"
-                step="0.01"
+              <CurrencyInput
+                cents={prop.valorCents}
+                onChange={(cents) => updateProperty(index, "valorCents", String(cents))}
               />
             </div>
           </div>
