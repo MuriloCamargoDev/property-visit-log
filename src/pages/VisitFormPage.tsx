@@ -60,7 +60,7 @@ const VisitFormPage = ({ onGoToProfile }: VisitFormPageProps) => {
     }
 
     const hasEmptyProperty = properties.some(
-      (p) => !p.cidade || !p.setor || !p.valor
+      (p) => !p.cidade || !p.setor || p.valorCents <= 0
     );
     if (hasEmptyProperty) {
       toast.error("Preencha todos os dados dos imóveis");
