@@ -36,7 +36,7 @@ const VisitFormPage = ({ onGoToProfile }: VisitFormPageProps) => {
   const [visitDate, setVisitDate] = useState("");
   const [propertyCount, setPropertyCount] = useState<number>(1);
   const [properties, setProperties] = useState<PropertyData[]>([
-    { cidade: "", setor: "", valor: "" },
+    { cidade: "", setor: "", valorCents: 0 },
   ]);
   const [feedback, setFeedback] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
