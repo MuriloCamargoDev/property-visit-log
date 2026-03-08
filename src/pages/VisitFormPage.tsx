@@ -46,7 +46,7 @@ const VisitFormPage = ({ onGoToProfile }: VisitFormPageProps) => {
     const count = Math.max(1, Math.min(10, parseInt(val) || 1));
     setPropertyCount(count);
     const updated = [...properties];
-    while (updated.length < count) updated.push({ cidade: "", setor: "", valor: "" });
+    while (updated.length < count) updated.push({ cidade: "", setor: "", valorCents: 0 });
     while (updated.length > count) updated.pop();
     setProperties(updated);
   };
