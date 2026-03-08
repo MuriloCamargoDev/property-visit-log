@@ -23,7 +23,7 @@ import {
 interface PropertyData {
   cidade: string;
   setor: string;
-  valor: string;
+  valorCents: number;
 }
 
 interface VisitFormPageProps {
@@ -36,7 +36,7 @@ const VisitFormPage = ({ onGoToProfile }: VisitFormPageProps) => {
   const [visitDate, setVisitDate] = useState("");
   const [propertyCount, setPropertyCount] = useState<number>(1);
   const [properties, setProperties] = useState<PropertyData[]>([
-    { cidade: "", setor: "", valor: "" },
+    { cidade: "", setor: "", valorCents: 0 },
   ]);
   const [feedback, setFeedback] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
@@ -46,7 +46,7 @@ const VisitFormPage = ({ onGoToProfile }: VisitFormPageProps) => {
     const count = Math.max(1, Math.min(10, parseInt(val) || 1));
     setPropertyCount(count);
     const updated = [...properties];
-    while (updated.length < count) updated.push({ cidade: "", setor: "", valor: "" });
+    while (updated.length < count) updated.push({ cidade: "", setor: "", valorCents: 0 });
     while (updated.length > count) updated.pop();
     setProperties(updated);
   };
@@ -60,7 +60,7 @@ const VisitFormPage = ({ onGoToProfile }: VisitFormPageProps) => {
     }
 
     const hasEmptyProperty = properties.some(
-      (p) => !p.cidade || !p.setor || !p.valor
+      (p) => !p.cidade || !p.setor || p.valorCents <= 0
     );
     if (hasEmptyProperty) {
       toast.error("Preencha todos os dados dos imóveis");
@@ -69,7 +69,7 @@ const VisitFormPage = ({ onGoToProfile }: VisitFormPageProps) => {
 
     setSubmitting(true);
 
-    const valores = properties.map((p) => parseFloat(p.valor));
+    const valores = properties.map((p) => p.valorCents / 100);
     const mediaValor = valores.reduce((a, b) => a + b, 0) / valores.length;
 
     const cidadesUnique = [...new Set(properties.map((p) => p.cidade.trim()))].join(", ");
@@ -115,7 +115,7 @@ const VisitFormPage = ({ onGoToProfile }: VisitFormPageProps) => {
       setClientName("");
       setVisitDate("");
       setPropertyCount(1);
-      setProperties([{ cidade: "", setor: "", valor: "" }]);
+      setProperties([{ cidade: "", setor: "", valorCents: 0 }]);
       setFeedback("");
       setPhoto(null);
     } catch (err: any) {

@@ -1,13 +1,14 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import CurrencyInput from "@/components/CurrencyInput";
 import { Trash2, MapPin, DollarSign, Building } from "lucide-react";
 import { PRIORITY_CITIES, OTHER_CITIES } from "@/data/goias-cities";
 
 interface PropertyData {
   cidade: string;
   setor: string;
-  valor: string;
+  valorCents: number;
 }
 
 interface PropertyFieldsProps {
@@ -16,7 +17,7 @@ interface PropertyFieldsProps {
 }
 
 const PropertyFields = ({ properties, onChange }: PropertyFieldsProps) => {
-  const updateProperty = (index: number, field: keyof PropertyData, value: string) => {
+  const updateProperty = (index: number, field: keyof PropertyData, value: string | number) => {
     const updated = [...properties];
     updated[index] = { ...updated[index], [field]: value };
     onChange(updated);
@@ -88,14 +89,9 @@ const PropertyFields = ({ properties, onChange }: PropertyFieldsProps) => {
               <Label className="text-xs text-muted-foreground flex items-center gap-1">
                 <DollarSign className="w-3 h-3" /> Valor (R$)
               </Label>
-              <Input
-                type="number"
-                placeholder="Ex: 350000"
-                value={prop.valor}
-                onChange={(e) => updateProperty(index, "valor", e.target.value)}
-                required
-                min="0"
-                step="0.01"
+              <CurrencyInput
+                cents={prop.valorCents}
+                onChange={(cents) => updateProperty(index, "valorCents", cents)}
               />
             </div>
           </div>

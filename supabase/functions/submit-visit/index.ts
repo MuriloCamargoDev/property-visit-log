@@ -9,6 +9,8 @@ const corsHeaders = {
 const APPS_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbxS3h9scxcpmMp1MUgGnCdc9BlBmXo5m0_zJ94Lzd6OiAXAamuk4XaL1Oj49wJvAOpe/exec";
 
+const DRIVE_ROOT_FOLDER_ID = "1iImsnrUnvwHCjnR_7-HlCOhMhYiNTcJV";
+
 const TEAM_SPREADSHEET_IDS: Record<string, string> = {
   Aventador: "1JwVmSefjfEPCba9UmMf1HYxh44WoF1yl_1DSnAm4TL8",
   "Red Eagles": "1P1MtSUy9qTUrAyiwNoiEBWKpyt01TqUF9JaM0uI-vvw",
@@ -105,8 +107,13 @@ Deno.serve(async (req) => {
 
     if (photoBase64) {
       payload.photoBase64 = photoBase64;
-      payload.photoName = `Visita - ${corretor} - ${cliente} - ${data.split("-").reverse().join("-")}.${photoName.split(".").pop() || "jpg"}`;
+      payload.photoName = `Visita - ${corretor} - ${equipe} - ${cliente} - ${data.split("-").reverse().join("-")}.${photoName.split(".").pop() || "jpg"}`;
       payload.photoMimeType = photoMimeType;
+      payload.driveFolderId = DRIVE_ROOT_FOLDER_ID;
+      // Folder hierarchy: Visitas Class > Equipe > Ano > Mês > Dia
+      const dateObj = new Date(data + "T00:00:00");
+      const dia = String(dateObj.getDate()).padStart(2, "0");
+      payload.folderPath = `Visitas Class/${equipe}/${ano}/${mes}/${dia}`;
     }
 
     // Send to Google Apps Script webhook
