@@ -1,13 +1,14 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import CurrencyInput from "@/components/CurrencyInput";
 import { Trash2, MapPin, DollarSign, Building } from "lucide-react";
 import { PRIORITY_CITIES, OTHER_CITIES } from "@/data/goias-cities";
 
 interface PropertyData {
   cidade: string;
   setor: string;
-  valor: string;
+  valorCents: number;
 }
 
 interface PropertyFieldsProps {
