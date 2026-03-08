@@ -69,7 +69,7 @@ const VisitFormPage = ({ onGoToProfile }: VisitFormPageProps) => {
 
     setSubmitting(true);
 
-    const valores = properties.map((p) => parseFloat(p.valor));
+    const valores = properties.map((p) => p.valorCents / 100);
     const mediaValor = valores.reduce((a, b) => a + b, 0) / valores.length;
 
     const cidadesUnique = [...new Set(properties.map((p) => p.cidade.trim()))].join(", ");
