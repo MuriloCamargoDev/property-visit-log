@@ -23,7 +23,7 @@ import {
 interface PropertyData {
   cidade: string;
   setor: string;
-  valor: string;
+  valorCents: number;
 }
 
 interface VisitFormPageProps {
