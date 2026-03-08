@@ -107,8 +107,13 @@ Deno.serve(async (req) => {
 
     if (photoBase64) {
       payload.photoBase64 = photoBase64;
-      payload.photoName = `Visita - ${corretor} - ${cliente} - ${data.split("-").reverse().join("-")}.${photoName.split(".").pop() || "jpg"}`;
+      payload.photoName = `Visita - ${corretor} - ${equipe} - ${cliente} - ${data.split("-").reverse().join("-")}.${photoName.split(".").pop() || "jpg"}`;
       payload.photoMimeType = photoMimeType;
+      payload.driveFolderId = DRIVE_ROOT_FOLDER_ID;
+      // Folder hierarchy: Visitas Class > Equipe > Ano > Mês > Dia
+      const dateObj = new Date(data + "T00:00:00");
+      const dia = String(dateObj.getDate()).padStart(2, "0");
+      payload.folderPath = `Visitas Class/${equipe}/${ano}/${mes}/${dia}`;
     }
 
     // Send to Google Apps Script webhook
