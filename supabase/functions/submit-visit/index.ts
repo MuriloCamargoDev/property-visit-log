@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const APPS_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbxJWiyX9m4RwBrseHUIYEdV-nSohNH0wWB-IMZxzyNg32DtS2tzc9J2uGaV-Envjmr9/exec";
+  "https://script.google.com/macros/s/AKfycbz-d6rWSs7tNSi73LG8BtIapF7mZ8s4ls0pY86A5YeGrFq_eYTKsdS3NU4W8Zac2ahv/exec";
 
 const DRIVE_ROOT_FOLDER_ID = "1iImsnrUnvwHCjnR_7-HlCOhMhYiNTcJV";
 
