@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGeolocation } from "@/hooks/useGeolocation";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +20,8 @@ import {
   Camera,
   Send,
   Building2,
+  MapPin,
+  Map,
 } from "lucide-react";
 
 interface PropertyData {
@@ -29,10 +32,12 @@ interface PropertyData {
 
 interface VisitFormPageProps {
   onGoToProfile: () => void;
+  onGoToMap: () => void;
 }
 
-const VisitFormPage = ({ onGoToProfile }: VisitFormPageProps) => {
-  const { profile, signOut } = useAuth();
+const VisitFormPage = ({ onGoToProfile, onGoToMap }: VisitFormPageProps) => {
+  const { user, profile, signOut } = useAuth();
+  const { location, loading: geoLoading, error: geoError, requestLocation } = useGeolocation();
   const [clientName, setClientName] = useState("");
   const [visitDate, setVisitDate] = useState("");
   const [propertyCount, setPropertyCount] = useState<number>(1);
@@ -42,6 +47,11 @@ const VisitFormPage = ({ onGoToProfile }: VisitFormPageProps) => {
   const [feedback, setFeedback] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Request geolocation on mount
+  useEffect(() => {
+    requestLocation();
+  }, [requestLocation]);
 
   const handlePropertyCountChange = (val: string) => {
     const count = Math.max(1, Math.min(10, parseInt(val) || 1));
@@ -70,77 +80,79 @@ const VisitFormPage = ({ onGoToProfile }: VisitFormPageProps) => {
 
     setSubmitting(true);
 
-    const valores = properties.map((p) => p.valorCents / 100);
-    const mediaValor = valores.reduce((a, b) => a + b, 0) / valores.length;
-
-    const cidadesUnique = [...new Set(properties.map((p) => p.cidade.trim()))].join(", ");
-    const setoresUnique = [...new Set(properties.map((p) => p.setor.trim()))].join(", ");
-
-    const dateObj = new Date(visitDate + "T00:00:00");
-    const mes = dateObj.toLocaleString("pt-BR", { month: "long" });
-    const ano = dateObj.getFullYear();
-    const mesCapitalized = mes.charAt(0).toUpperCase() + mes.slice(1);
-
-    // Format date parts
-    const [yyyy, mm, dd] = visitDate.split("-");
-    const dataFormatada = `${dd}-${mm}-${yyyy}`;
-
-    // Upload photo to storage if present
-    let fotoUrl = "";
-    let nomeArquivo = "";
-    if (photo) {
-      const ext = photo.name.split(".").pop() || "jpg";
-      nomeArquivo = `Visita - ${profile?.full_name} - ${profile?.team} - ${clientName} - ${dataFormatada}.${ext}`;
-      const storagePath = `${crypto.randomUUID()}.${ext}`;
-
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("visit-photos")
-        .upload(storagePath, photo, { contentType: photo.type });
-
-      if (uploadError) throw new Error("Erro ao enviar foto: " + uploadError.message);
-
-      const { data: urlData } = supabase.storage
-        .from("visit-photos")
-        .getPublicUrl(uploadData.path);
-
-      fotoUrl = urlData.publicUrl;
-    }
-
-    const payload = {
-      corretor: profile?.full_name || "",
-      equipe: profile?.team || "",
-      cliente: clientName,
-      data: visitDate,
-      mes: mesCapitalized,
-      ano: String(ano),
-      valorMedio: String(mediaValor),
-      setores: setoresUnique,
-      cidades: cidadesUnique,
-      feedback,
-      foto: fotoUrl,
-      nomeArquivo,
-    };
-
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const valores = properties.map((p) => p.valorCents / 100);
+      const mediaValor = valores.reduce((a, b) => a + b, 0) / valores.length;
 
-      const response = await fetch(
-        `${supabaseUrl}/functions/v1/submit-visit`,
-        {
-          method: "POST",
-          headers: {
-            apikey: anonKey,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        }
-      );
+      const cidadesUnique = [...new Set(properties.map((p) => p.cidade.trim()))].join(", ");
+      const setoresUnique = [...new Set(properties.map((p) => p.setor.trim()))].join(", ");
 
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Erro ao registrar visita");
+      const dateObj = new Date(visitDate + "T00:00:00");
+      const mes = dateObj.toLocaleString("pt-BR", { month: "long" });
+      const ano = dateObj.getFullYear();
+      const mesCapitalized = mes.charAt(0).toUpperCase() + mes.slice(1);
+
+      // Upload photo if present
+      let fotoUrl = "";
+      let fotoStoragePath = "";
+      if (photo) {
+        const ext = photo.name.split(".").pop() || "jpg";
+        fotoStoragePath = `${crypto.randomUUID()}.${ext}`;
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("visit-photos")
+          .upload(fotoStoragePath, photo, { contentType: photo.type });
+
+        if (uploadError) throw new Error("Erro ao enviar foto: " + uploadError.message);
+
+        const { data: urlData } = supabase.storage
+          .from("visit-photos")
+          .getPublicUrl(uploadData.path);
+
+        fotoUrl = urlData.publicUrl;
+      }
+
+      // Save to database
+      const { data: visit, error: insertError } = await supabase
+        .from("visits")
+        .insert({
+          user_id: user!.id,
+          corretor: profile?.full_name || "",
+          equipe: profile?.team || "",
+          cliente: clientName,
+          data_visita: visitDate,
+          mes: mesCapitalized,
+          ano: String(ano),
+          valor_medio: mediaValor,
+          setores: setoresUnique,
+          cidades: cidadesUnique,
+          feedback,
+          foto_url: fotoUrl,
+          foto_storage_path: fotoStoragePath,
+          latitude: location?.latitude ?? null,
+          longitude: location?.longitude ?? null,
+          sync_status: "pending",
+        })
+        .select("id")
+        .single();
+
+      if (insertError) throw new Error("Erro ao salvar visita: " + insertError.message);
 
       toast.success("Visita registrada com sucesso!");
+
+      // Trigger async processing (fire and forget)
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      fetch(`${supabaseUrl}/functions/v1/process-visit`, {
+        method: "POST",
+        headers: {
+          apikey: anonKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ visit_id: visit.id }),
+      }).catch((err) => console.error("Sync error (background):", err));
+
+      // Reset form
       setClientName("");
       setVisitDate("");
       setPropertyCount(1);
@@ -174,6 +186,13 @@ const VisitFormPage = ({ onGoToProfile }: VisitFormPageProps) => {
               <Users className="w-3 h-3" />
               {profile?.team}
             </span>
+            <button
+              onClick={onGoToMap}
+              className="text-primary-foreground/60 hover:text-primary-foreground transition-colors"
+              title="Mapa de Visitas"
+            >
+              <Map className="w-4 h-4" />
+            </button>
             <button
               onClick={onGoToProfile}
               className="text-primary-foreground/60 hover:text-primary-foreground transition-colors"
@@ -287,6 +306,26 @@ const VisitFormPage = ({ onGoToProfile }: VisitFormPageProps) => {
               <span className="text-xs text-muted-foreground">(opcional)</span>
             </Label>
             <PhotoUpload photo={photo} onPhotoChange={setPhoto} />
+          </div>
+
+          {/* Location indicator */}
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <MapPin className="w-3.5 h-3.5" />
+            {geoLoading && "Obtendo localização..."}
+            {geoError && (
+              <span className="text-destructive">
+                {geoError}{" "}
+                <button type="button" onClick={requestLocation} className="underline">
+                  Tentar novamente
+                </button>
+              </span>
+            )}
+            {location && !geoLoading && (
+              <span className="text-success">
+                Localização capturada ✓
+              </span>
+            )}
+            {!location && !geoLoading && !geoError && "Localização não disponível"}
           </div>
 
           <Button

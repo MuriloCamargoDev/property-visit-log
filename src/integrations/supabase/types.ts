@@ -38,6 +38,72 @@ export type Database = {
         }
         Relationships: []
       }
+      visits: {
+        Row: {
+          ano: string
+          cidades: string
+          cliente: string
+          corretor: string
+          created_at: string
+          data_visita: string
+          equipe: string
+          feedback: string
+          foto_storage_path: string | null
+          foto_url: string | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          mes: string
+          setores: string
+          sync_error: string | null
+          sync_status: string
+          user_id: string
+          valor_medio: number
+        }
+        Insert: {
+          ano: string
+          cidades?: string
+          cliente: string
+          corretor: string
+          created_at?: string
+          data_visita: string
+          equipe: string
+          feedback?: string
+          foto_storage_path?: string | null
+          foto_url?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          mes: string
+          setores?: string
+          sync_error?: string | null
+          sync_status?: string
+          user_id: string
+          valor_medio?: number
+        }
+        Update: {
+          ano?: string
+          cidades?: string
+          cliente?: string
+          corretor?: string
+          created_at?: string
+          data_visita?: string
+          equipe?: string
+          feedback?: string
+          foto_storage_path?: string | null
+          foto_url?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          mes?: string
+          setores?: string
+          sync_error?: string | null
+          sync_status?: string
+          user_id?: string
+          valor_medio?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

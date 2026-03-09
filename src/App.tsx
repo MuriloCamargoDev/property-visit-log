@@ -8,13 +8,14 @@ import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import VisitFormPage from "./pages/VisitFormPage";
 import ProfilePage from "./pages/ProfilePage";
+import MapPage from "./pages/MapPage";
 
 const queryClient = new QueryClient();
 
 const AppRoutes = () => {
   const { user, profile, loading } = useAuth();
   const [authView, setAuthView] = useState<"login" | "signup">("login");
-  const [appView, setAppView] = useState<"form" | "profile">("form");
+  const [appView, setAppView] = useState<"form" | "profile" | "map">("form");
 
   if (loading) {
     return (
@@ -37,7 +38,16 @@ const AppRoutes = () => {
     return <ProfilePage onBack={() => setAppView("form")} />;
   }
 
-  return <VisitFormPage onGoToProfile={() => setAppView("profile")} />;
+  if (appView === "map") {
+    return <MapPage onBack={() => setAppView("form")} />;
+  }
+
+  return (
+    <VisitFormPage
+      onGoToProfile={() => setAppView("profile")}
+      onGoToMap={() => setAppView("map")}
+    />
+  );
 };
 
 const App = () => (
