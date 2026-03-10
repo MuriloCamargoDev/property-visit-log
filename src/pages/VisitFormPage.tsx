@@ -22,6 +22,7 @@ import {
   Building2,
   MapPin,
   Map,
+  BarChart3,
 } from "lucide-react";
 
 interface PropertyData {
