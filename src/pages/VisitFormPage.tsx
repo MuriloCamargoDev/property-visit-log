@@ -33,9 +33,10 @@ interface PropertyData {
 interface VisitFormPageProps {
   onGoToProfile: () => void;
   onGoToMap: () => void;
+  onGoToDashboard: () => void;
 }
 
-const VisitFormPage = ({ onGoToProfile, onGoToMap }: VisitFormPageProps) => {
+const VisitFormPage = ({ onGoToProfile, onGoToMap, onGoToDashboard }: VisitFormPageProps) => {
   const { user, profile, signOut } = useAuth();
   const { location, loading: geoLoading, error: geoError, requestLocation } = useGeolocation();
   const [clientName, setClientName] = useState("");
