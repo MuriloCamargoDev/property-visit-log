@@ -9,13 +9,14 @@ import SignupPage from "./pages/SignupPage";
 import VisitFormPage from "./pages/VisitFormPage";
 import ProfilePage from "./pages/ProfilePage";
 import MapPage from "./pages/MapPage";
+import DashboardPage from "./pages/DashboardPage";
 
 const queryClient = new QueryClient();
 
 const AppRoutes = () => {
   const { user, profile, loading } = useAuth();
   const [authView, setAuthView] = useState<"login" | "signup">("login");
-  const [appView, setAppView] = useState<"form" | "profile" | "map">("form");
+  const [appView, setAppView] = useState<"form" | "profile" | "map" | "dashboard">("form");
 
   if (loading) {
     return (
@@ -42,10 +43,15 @@ const AppRoutes = () => {
     return <MapPage onBack={() => setAppView("form")} />;
   }
 
+  if (appView === "dashboard") {
+    return <DashboardPage onBack={() => setAppView("form")} />;
+  }
+
   return (
     <VisitFormPage
       onGoToProfile={() => setAppView("profile")}
       onGoToMap={() => setAppView("map")}
+      onGoToDashboard={() => setAppView("dashboard")}
     />
   );
 };

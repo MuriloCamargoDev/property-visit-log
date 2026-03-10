@@ -22,6 +22,7 @@ import {
   Building2,
   MapPin,
   Map,
+  BarChart3,
 } from "lucide-react";
 
 interface PropertyData {
@@ -33,9 +34,10 @@ interface PropertyData {
 interface VisitFormPageProps {
   onGoToProfile: () => void;
   onGoToMap: () => void;
+  onGoToDashboard: () => void;
 }
 
-const VisitFormPage = ({ onGoToProfile, onGoToMap }: VisitFormPageProps) => {
+const VisitFormPage = ({ onGoToProfile, onGoToMap, onGoToDashboard }: VisitFormPageProps) => {
   const { user, profile, signOut } = useAuth();
   const { location, loading: geoLoading, error: geoError, requestLocation } = useGeolocation();
   const [clientName, setClientName] = useState("");
@@ -186,6 +188,13 @@ const VisitFormPage = ({ onGoToProfile, onGoToMap }: VisitFormPageProps) => {
               <Users className="w-3 h-3" />
               {profile?.team}
             </span>
+            <button
+              onClick={onGoToDashboard}
+              className="text-primary-foreground/60 hover:text-primary-foreground transition-colors"
+              title="Dashboard"
+            >
+              <BarChart3 className="w-4 h-4" />
+            </button>
             <button
               onClick={onGoToMap}
               className="text-primary-foreground/60 hover:text-primary-foreground transition-colors"
