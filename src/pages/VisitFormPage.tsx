@@ -188,6 +188,13 @@ const VisitFormPage = ({ onGoToProfile, onGoToMap, onGoToDashboard }: VisitFormP
               {profile?.team}
             </span>
             <button
+              onClick={onGoToDashboard}
+              className="text-primary-foreground/60 hover:text-primary-foreground transition-colors"
+              title="Dashboard"
+            >
+              <BarChart3 className="w-4 h-4" />
+            </button>
+            <button
               onClick={onGoToMap}
               className="text-primary-foreground/60 hover:text-primary-foreground transition-colors"
               title="Mapa de Visitas"
