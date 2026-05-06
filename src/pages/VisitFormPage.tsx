@@ -244,14 +244,38 @@ const VisitFormPage = () => {
             <Label className="flex items-center gap-1.5 text-foreground">
               <Hash className="w-4 h-4 text-muted-foreground" /> Quantas visitas foram feitas? *
             </Label>
-            <Input
-              type="number"
-              min={1}
-              max={10}
-              value={propertyCount}
-              onChange={(e) => handlePropertyCountChange(e.target.value)}
-              required
-            />
+            <div className="flex items-center justify-between gap-3 rounded-md border border-input bg-background p-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-12 w-12 text-2xl shrink-0"
+                onClick={() => handlePropertyCountChange(String(propertyCount - 1))}
+                disabled={propertyCount <= 1}
+                aria-label="Diminuir quantidade"
+              >
+                −
+              </Button>
+              <div className="flex-1 text-center">
+                <div className="text-3xl font-heading font-bold text-foreground leading-none">
+                  {propertyCount}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  {propertyCount === 1 ? "visita" : "visitas"}
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-12 w-12 text-2xl shrink-0"
+                onClick={() => handlePropertyCountChange(String(propertyCount + 1))}
+                disabled={propertyCount >= 10}
+                aria-label="Aumentar quantidade"
+              >
+                +
+              </Button>
+            </div>
           </div>
 
           {/* Tabs por visita */}
