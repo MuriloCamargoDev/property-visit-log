@@ -49,6 +49,9 @@ const VisitFormPage = () => {
   const [corretor, setCorretor] = useState("");
   const [equipe, setEquipe] = useState<string>("");
   const [managerPhone, setManagerPhone] = useState("");
+  const [editingPhone, setEditingPhone] = useState(false);
+  const currentManager = equipe ? TEAM_MANAGERS[equipe] : undefined;
+
   const [clientName, setClientName] = useState("");
   const [visitDate, setVisitDate] = useState("");
   const [propertyCount, setPropertyCount] = useState<number>(1);
