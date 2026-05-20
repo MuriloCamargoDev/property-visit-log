@@ -36,12 +36,22 @@ interface PropertyData {
   valorCents: number;
 }
 
-const TEAMS = ["Aventador", "Red Eagles", "Fênix", "Rota", "Sharks"];
+const TEAM_MANAGERS: Record<string, { nome: string; phone: string }> = {
+  Aventador: { nome: "Guilherme", phone: "5562993149613" },
+  "Red Eagles": { nome: "Wilson", phone: "5562982133950" },
+  "Fênix": { nome: "Marcos Júnior", phone: "5562992246151" },
+  Rota: { nome: "Gleicy", phone: "5562992931136" },
+  Sharks: { nome: "Yuri", phone: "5562992847171" },
+};
+const TEAMS = Object.keys(TEAM_MANAGERS);
 
 const VisitFormPage = () => {
   const [corretor, setCorretor] = useState("");
   const [equipe, setEquipe] = useState<string>("");
   const [managerPhone, setManagerPhone] = useState("");
+  const [editingPhone, setEditingPhone] = useState(false);
+  const currentManager = equipe ? TEAM_MANAGERS[equipe] : undefined;
+
   const [clientName, setClientName] = useState("");
   const [visitDate, setVisitDate] = useState("");
   const [propertyCount, setPropertyCount] = useState<number>(1);
@@ -67,7 +77,8 @@ const VisitFormPage = () => {
     if (equipe) {
       localStorage.setItem("vc_equipe", equipe);
       const saved = localStorage.getItem(`vc_manager_${equipe}`);
-      setManagerPhone(saved || "");
+      setManagerPhone(saved || TEAM_MANAGERS[equipe]?.phone || "");
+      setEditingPhone(false);
     }
   }, [equipe]);
 
@@ -76,6 +87,15 @@ const VisitFormPage = () => {
       localStorage.setItem(`vc_manager_${equipe}`, managerPhone);
     }
   }, [equipe, managerPhone]);
+
+  const resetManagerPhone = () => {
+    if (!equipe) return;
+    const def = TEAM_MANAGERS[equipe]?.phone || "";
+    setManagerPhone(def);
+    localStorage.removeItem(`vc_manager_${equipe}`);
+    setEditingPhone(false);
+  };
+
 
   const handlePropertyCountChange = (val: string) => {
     const count = Math.max(1, Math.min(10, parseInt(val) || 1));
@@ -197,21 +217,66 @@ const VisitFormPage = () => {
           </div>
 
           {/* Manager phone */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-1.5 text-foreground">
-              <Phone className="w-4 h-4 text-muted-foreground" /> WhatsApp do Gerente *
-            </Label>
-            <Input
-              type="tel"
-              placeholder="+55 62 99999-9999"
-              value={managerPhone}
-              onChange={(e) => setManagerPhone(e.target.value)}
-              required
-            />
-            <p className="text-xs text-muted-foreground">
-              Inclua o código do país (55) e DDD. Salvo por equipe neste dispositivo.
-            </p>
-          </div>
+          {equipe && (
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5 text-foreground">
+                <Phone className="w-4 h-4 text-muted-foreground" /> WhatsApp do Gerente *
+              </Label>
+              {!editingPhone ? (
+                <div className="flex items-center justify-between gap-2 rounded-md border border-input bg-secondary/40 p-3">
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-foreground truncate">
+                      {currentManager?.nome ?? "Gerente"}
+                    </div>
+                    <div className="text-xs text-muted-foreground font-mono">
+                      {managerPhone || "—"}
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEditingPhone(true)}
+                  >
+                    Trocar
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <Input
+                    type="tel"
+                    placeholder="5562999999999"
+                    value={managerPhone}
+                    onChange={(e) => setManagerPhone(e.target.value)}
+                    required
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={resetManagerPhone}
+                    >
+                      Restaurar padrão ({currentManager?.nome})
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setEditingPhone(false)}
+                    >
+                      Concluir
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Inclua o código do país (55) e DDD. Salvo por equipe neste dispositivo.
+                  </p>
+                </>
+              )}
+            </div>
+          )}
+
+
 
           {/* Cliente */}
           <div className="space-y-2">
