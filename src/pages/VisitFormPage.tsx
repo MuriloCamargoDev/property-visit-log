@@ -36,7 +36,14 @@ interface PropertyData {
   valorCents: number;
 }
 
-const TEAMS = ["Aventador", "Red Eagles", "Fênix", "Rota", "Sharks"];
+const TEAM_MANAGERS: Record<string, { nome: string; phone: string }> = {
+  Aventador: { nome: "Guilherme", phone: "5562993149613" },
+  "Red Eagles": { nome: "Wilson", phone: "5562982133950" },
+  "Fênix": { nome: "Marcos Júnior", phone: "5562992246151" },
+  Rota: { nome: "Gleicy", phone: "5562992931136" },
+  Sharks: { nome: "Yuri", phone: "5562992847171" },
+};
+const TEAMS = Object.keys(TEAM_MANAGERS);
 
 const VisitFormPage = () => {
   const [corretor, setCorretor] = useState("");
