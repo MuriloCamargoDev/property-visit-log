@@ -77,7 +77,8 @@ const VisitFormPage = () => {
     if (equipe) {
       localStorage.setItem("vc_equipe", equipe);
       const saved = localStorage.getItem(`vc_manager_${equipe}`);
-      setManagerPhone(saved || "");
+      setManagerPhone(saved || TEAM_MANAGERS[equipe]?.phone || "");
+      setEditingPhone(false);
     }
   }, [equipe]);
 
@@ -86,6 +87,15 @@ const VisitFormPage = () => {
       localStorage.setItem(`vc_manager_${equipe}`, managerPhone);
     }
   }, [equipe, managerPhone]);
+
+  const resetManagerPhone = () => {
+    if (!equipe) return;
+    const def = TEAM_MANAGERS[equipe]?.phone || "";
+    setManagerPhone(def);
+    localStorage.removeItem(`vc_manager_${equipe}`);
+    setEditingPhone(false);
+  };
+
 
   const handlePropertyCountChange = (val: string) => {
     const count = Math.max(1, Math.min(10, parseInt(val) || 1));
